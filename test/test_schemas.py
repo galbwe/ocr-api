@@ -2,9 +2,6 @@ from datetime import datetime
 
 import pytest
 
-from models.image import Image
-from models.word_confidence_result import WordConfidenceResult
-from models.ocr_result import OcrResult
 from utils.uuid_generator import UuidGenerator
 from schemas.image_schema import ImageSchema
 from schemas.ocr_result_schema import OcrResultSchema
@@ -16,6 +13,7 @@ from models.ocr_result import OcrResult
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
+
 @pytest.fixture(scope="module")
 def redis_data():
     uuid = UuidGenerator()
@@ -24,7 +22,8 @@ def redis_data():
     word_confidence_result_id = next(uuid)
     image = {"id": image_id,
             "filename": "license_plate.jpg",
-            "date_uploaded": datetime.now().strftime(DATE_FORMAT)}
+            "date_uploaded": datetime.now().strftime(DATE_FORMAT),
+            "ocr_result_id": ocr_result_id}
     word_confidence_result = {
         'id': word_confidence_result_id,
         'ocr_result_id': ocr_result_id,
@@ -46,9 +45,11 @@ def redis_data():
         'image_id': image_id,
         'ocr_conversion_status': 'PENDING',
         'text': 'The quick brown fox jumped over the sleeping dog.',
-        'date_converted': datetime.now().strftime(DATE_FORMAT)
+        'date_converted': datetime.now().strftime(DATE_FORMAT),
+        'word_confidence_result_ids': [word_confidence_result_id]
     }
     return image, ocr_result, word_confidence_result
+
 
 @pytest.fixture(scope='module')
 def application_objects():
@@ -56,14 +57,15 @@ def application_objects():
     image_id = next(uuid)
     ocr_result_id = next(uuid)
     word_confidence_result_id = next(uuid)
-    image = Image(image_id, 'license_plate.jpg', datetime.now())
+    image = Image(image_id, 'license_plate.jpg', datetime.now(), word_confidence_result_id)
     word_confidence_result = WordConfidenceResult(
         word_confidence_result_id, ocr_result_id, 2, 1, 1, 0, 0, 0, 36, 92, 582,
             269, 96, 'This')
     ocr_result = OcrResult(ocr_result_id, image_id, 'PENDING',
         'The quick brown fox jumped over the sleeping dog.',
-        datetime.now())
+        datetime.now(), [word_confidence_result_id])
     return image, word_confidence_result, ocr_result
+
 
 def test_deserialize_image(redis_data):
     schema = ImageSchema()
@@ -74,6 +76,7 @@ def test_deserialize_image(redis_data):
     assert image.filename == 'license_plate.jpg'
     assert isinstance(image.date_uploaded, datetime)
     assert image.date_uploaded == datetime.strptime(redis_image_data['date_uploaded'], DATE_FORMAT)
+    assert image.ocr_result_id == ocr_result_data['id']
 
 
 def test_deserialize_word_confidence_result(redis_data):
@@ -106,9 +109,10 @@ def test_deserialize_ocr_result(redis_data):
     assert ocr_result.ocr_conversion_status == 'PENDING'
     assert ocr_result.text == 'The quick brown fox jumped over the sleeping dog.'
     assert ocr_result.date_converted == datetime.strptime(ocr_result_data['date_converted'], DATE_FORMAT)
+    assert ocr_result.word_confidence_result_ids == [word_confidence_result_data['id']]
 
 
-def test_serialize_image(application_objects):
+def test_serialize_image(redis_data, application_objects):
     image, word_confidence_result, ocr_result = application_objects
     schema = ImageSchema()
     image_data = schema.dump(image)
@@ -117,6 +121,7 @@ def test_serialize_image(application_objects):
     assert image.filename == 'license_plate.jpg'
     assert isinstance(image.date_uploaded, datetime)
     assert image.date_uploaded == datetime.strptime(image_data['date_uploaded'], DATE_FORMAT)
+    assert image.ocr_result_id == image_data['ocr_result_id']
 
 
 def test_serialize_ocr_result(application_objects):
@@ -129,6 +134,7 @@ def test_serialize_ocr_result(application_objects):
     assert ocr_result.ocr_conversion_status == 'PENDING'
     assert ocr_result.text == 'The quick brown fox jumped over the sleeping dog.'
     assert ocr_result.date_converted == datetime.strptime(ocr_result_data['date_converted'], DATE_FORMAT)
+    assert ocr_result.word_confidence_result_ids == [word_confidence_result.id]
 
 
 def test_serialize_word_confidence_result(application_objects):

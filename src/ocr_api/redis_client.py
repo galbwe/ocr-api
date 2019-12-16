@@ -46,5 +46,5 @@ class RedisClient:
         binary_keys = self._r.hkeys(hash)
         return [key.decode() for key in binary_keys]
 
-    def collection_has_key(collection, key):
+    def collection_has_key(self, collection, key):
         return key in self.hkeys(collection)

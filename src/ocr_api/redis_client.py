@@ -9,9 +9,10 @@ class RedisClient:
     Simple client for redis server. The set method accepts strings as keys and
     a dictionary of strings for values.
     '''
-    def __init__(self, host=None, port=None):
+    def __init__(self, host=None, port=None, db=0):
         self.host = host or os.environ.get('REDIS_HOST', 'localhost')
         self.port = port or os.environ.get('REDIS_PORT', 6379)
+        self.db = db
         self._r = Redis(self.host, self.port)
 
     def set(self, key, value):

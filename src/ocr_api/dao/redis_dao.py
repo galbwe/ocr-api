@@ -17,7 +17,7 @@ class RedisDao:
     def update(self, id, model):
         if self.redis_client.collection_has_key(self.collection, id):
             model.id = id
-            data = self.image_schema.dump(model)
+            data = self.schema.dump(model)
             self.redis_client.hset(self.collection, id, data)
             return model
         raise ValueError(f'Collection {self.collection} has no key {id}.')

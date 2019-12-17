@@ -13,7 +13,7 @@ class RedisClient:
         self.host = host or os.environ.get('REDIS_HOST', 'localhost')
         self.port = port or os.environ.get('REDIS_PORT', 6379)
         self.db = db
-        self._r = Redis(self.host, self.port)
+        self._r = Redis(self.host, self.port, db=self.db)
 
     def set(self, key, value):
         string_value = json.dumps(value)
@@ -47,4 +47,4 @@ class RedisClient:
         return [key.decode() for key in binary_keys]
 
     def collection_has_key(self, collection, key):
-        return key in self.hkeys(collection)
+        return self._r.hexists(collection, key)

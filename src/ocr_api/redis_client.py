@@ -3,7 +3,7 @@ import json
 
 from redis import Redis
 
-
+# TODO: just subclass the imported redis client..
 class RedisClient:
     '''
     Simple client for redis server. The set method accepts strings as keys and
@@ -39,6 +39,9 @@ class RedisClient:
     def delete(self, key):
         self._r.delete(key)
 
+    def hdel(self, collection, key):
+        self._r.hdel(collection, key)
+
     def key_exists(self, key):
         return self._r.exists(key) > 0
 
@@ -48,3 +51,7 @@ class RedisClient:
 
     def collection_has_key(self, collection, key):
         return self._r.hexists(collection, key)
+
+    def hgetall(self, collection):
+        data = self._r.hgetall(collection)
+        return [json.loads(obj) for obj in data.values()]

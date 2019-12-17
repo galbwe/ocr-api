@@ -1,4 +1,4 @@
-
+import json
 
 class RedisDao:
 
@@ -30,6 +30,8 @@ class RedisDao:
         raise ValueError(f'Collection {self.collection} has no key {id}.')
 
     def insert(self, model):
+        if model.id and self.redis_client.collection_has_key(self.collection, model.id):
+            raise ValueError(f'Model with key {model.id} has already been inserted.')
         id = next(self.uuid_generator)
         while self.redis_client.collection_has_key(self.collection, id):
             id = next(self.uuid_generator)
@@ -38,5 +40,6 @@ class RedisDao:
         self.redis_client.hset(self.collection, id, data)
         return model
 
-    def get_all_ids(self):
-        return self.redis_client.hkeys(self.collection)
+    def get_all(self):
+        return [self.schema.load(obj)
+                for obj in self.redis_client.hgetall(self.collection)]
